@@ -3,6 +3,10 @@ from multiprocessing import Pool
 import regex as re
 from typing import BinaryIO
 
+# The GPT-2 pre-tokenization regex pattern
+PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+special_tokens = ["<|endoftext|>"]
+
 
 def find_chunk_boundaries(
     file: BinaryIO,
@@ -54,15 +58,18 @@ def find_chunk_boundaries(
 def process_chunk(args: tuple[str, int, int]) -> dict[str, int]:
     file_path, start, end = args
 
+    split_pattern = "|".join(re.escape(st) for st in special_tokens)
+    counts: dict[str, int] = {}
+
     with open(file_path, "rb") as f:
         f.seek(start)
         chunk = f.read(end - start).decode("utf-8", errors="ignore")
-
-    counts: dict[str, int] = {}
-    PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-    for pretoken_match in re.finditer(PAT, chunk):
-        pretoken = pretoken_match.group()
-        counts[pretoken] = counts.get(pretoken, 0) + 1
+        segments = re.split(split_pattern, chunk)
+        for segment in segments:
+            for pretoken_match in re.finditer(PAT, segment):
+                pretoken = pretoken_match.group()
+                counts[pretoken] = counts.get(pretoken, 0) + 1
+    
     return counts
 
 
