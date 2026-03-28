@@ -1,4 +1,6 @@
 import os
+from multiprocessing import Pool
+import regex as re
 from typing import BinaryIO
 
 
@@ -49,14 +51,43 @@ def find_chunk_boundaries(
     return sorted(set(chunk_boundaries))
 
 
-## Usage
-with open(..., "rb") as f:
-    num_processes = 4
-    boundaries = find_chunk_boundaries(f, num_processes, b"<|endoftext|>")
+def process_chunk(args: tuple[str, int, int]) -> dict[str, int]:
+    file_path, start, end = args
 
-    # The following is a serial implementation, but you can parallelize this
-    # by sending each start/end pair to a set of processes.
-    for start, end in zip(boundaries[:-1], boundaries[1:]):
+    with open(file_path, "rb") as f:
         f.seek(start)
         chunk = f.read(end - start).decode("utf-8", errors="ignore")
-        # Run pre-tokenization on your chunk and store the counts for each pre-token
+
+    counts: dict[str, int] = {}
+    PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+    for pretoken_match in re.finditer(PAT, chunk):
+        pretoken = pretoken_match.group()
+        counts[pretoken] = counts.get(pretoken, 0) + 1
+    return counts
+
+
+def merge_counts(partial_counts: list[dict[str, int]]) -> dict[str, int]:
+    merged: dict[str, int] = {}
+    for chunk_counts in partial_counts:
+        for pretoken, count in chunk_counts.items():
+            merged[pretoken] = merged.get(pretoken, 0) + count
+    return merged
+
+
+if __name__ == "__main__":
+    file_path = "data/TinyStoriesV2-GPT4-valid.txt"
+    num_processes = 4
+
+    with open(file_path, "rb") as f:
+        boundaries = find_chunk_boundaries(f, num_processes, b"<|endoftext|>")
+
+    chunk_args = [
+        (file_path, start, end)
+        for start, end in zip(boundaries[:-1], boundaries[1:])
+    ]
+
+    with Pool(processes=num_processes) as pool:
+        partial_counts = pool.map(process_chunk, chunk_args)
+
+    counts = merge_counts(partial_counts)
+    print(f"Counted {len(counts)} unique pre-tokens")
