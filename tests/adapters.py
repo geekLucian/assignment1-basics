@@ -28,8 +28,12 @@ def run_linear(
     Returns:
         Float[Tensor, "... d_out"]: The transformed output of your linear module.
     """
+    from cs336_basics.linear import Linear
 
-    raise NotImplementedError
+    linear = Linear(d_in, d_out, device=weights.device, dtype=weights.dtype)
+    linear.load_state_dict({"weight": weights})
+
+    return linear(in_features)
 
 
 def run_embedding(
@@ -559,7 +563,9 @@ def get_tokenizer(
     Returns:
         A BPE tokenizer that uses the provided vocab, merges, and special tokens.
     """
-    raise NotImplementedError
+    from cs336_basics.bpe import BPETokenizer
+
+    return BPETokenizer(vocab=vocab, merges=merges, special_tokens=special_tokens)
 
 
 def run_train_bpe(
@@ -589,4 +595,11 @@ def run_train_bpe(
                 representing that <token1> was merged with <token2>.
                 Merges are ordered by order of creation.
     """
-    raise NotImplementedError
+    from cs336_basics.bpe import train_bpe
+
+    return train_bpe(
+        input_path=os.fspath(input_path),
+        vocab_size=vocab_size,
+        special_tokens=special_tokens,
+        **kwargs,
+    )
