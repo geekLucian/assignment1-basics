@@ -21,7 +21,8 @@ class Linear(nn.Module):
             torch.empty(out_features,
                 in_features,
                 device=device,
-                dtype=dtype)
+                dtype=dtype
+            )
         )
 
         std = math.sqrt(2.0 / (in_features + out_features))
