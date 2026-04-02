@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import torch
-from einops import einsum
+from einops import einsum, reduce
 
 def softmax(in_features: torch.Tensor, dim: int) -> torch.Tensor:
     """
@@ -48,3 +48,21 @@ def scaled_dot_product_attention(
     output = attention_probs @ V
 
     return output
+
+
+def cross_entropy(inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+    """
+    Compute average cross-entropy loss from unnormalized logits.
+
+    Args:
+        inputs: (..., vocab_size)
+        targets: (...)
+
+    Returns:
+        Scalar tensor containing the average loss.
+    """
+    shifted = inputs - torch.max(inputs, dim=-1, keepdim=True).values
+    log_denom = torch.log(torch.sum(torch.exp(shifted), dim=-1, keepdim=True))
+    target_logits = torch.gather(shifted, dim=-1, index=targets.unsqueeze(-1))
+    losses = -target_logits + log_denom
+    return losses.mean()
