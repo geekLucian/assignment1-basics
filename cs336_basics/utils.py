@@ -98,3 +98,27 @@ def get_lr_cosine_schedule(
     # 3. After the cosine schedule ends, stay at the minimum LR
     return min_learning_rate
 
+
+def gradient_clipping(
+    parameters,
+    max_l2_norm: float,
+    eps: float = 1e-6,
+) -> None:
+    # 1. Collect only parameters that actually have gradients.
+    params_with_grads = [p for p in parameters if p.grad is not None]
+
+    # 2. Compute the total squared L2 norm across all gradients.
+    total_squared_norm = sum(p.grad.data.pow(2).sum() for p in params_with_grads)
+
+    # 3. Take the square root to get the global L2 norm.
+    total_norm = torch.sqrt(total_squared_norm)
+
+    # 4. Compute the clipping coefficient.
+    clip_coef = max_l2_norm / (total_norm + eps)
+
+    # 5. If clipping is needed, scale gradients in-place.
+    if total_norm > max_l2_norm:
+        for p in params_with_grads:
+            p.grad.data *= clip_coef 
+        
+
