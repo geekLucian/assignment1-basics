@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import torch
 from einops import einsum, reduce
+import numpy as np
 import math
 
 def softmax(in_features: torch.Tensor, dim: int) -> torch.Tensor:
@@ -121,4 +122,34 @@ def gradient_clipping(
         for p in params_with_grads:
             p.grad.data *= clip_coef 
         
+
+def get_batch(
+    dataset: np.ndarray,
+    batch_size: int,
+    context_length: int,
+    device: str,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Sample a batch of input/target token sequences from a 1D token-id array.
+
+    Returns:
+        inputs:  (batch_size, context_length)
+        targets: (batch_size, context_length)
+    """
+    # 1. Sample random start positions for each example.
+    start_indices = np.random.randint(0, len(dataset) - context_length, size=batch_size)
+
+    # 2. Build input sequences of length `context_length`.
+    inputs = np.stack([dataset[i:i+context_length] for i in start_indices])
+
+    # 3. Build next-token targets shifted by one position.
+    targets = np.stack([dataset[i+1:i+1+context_length] for i in start_indices])
+
+    # 4. Convert to torch tensors on the requested device.
+    inputs = torch.from_numpy(inputs).to(device)
+    targets = torch.from_numpy(targets).to(device)
+
+    return inputs, targets
+
+
 
