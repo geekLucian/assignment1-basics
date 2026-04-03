@@ -4,6 +4,8 @@ import torch
 from einops import einsum, reduce
 import numpy as np
 import math
+import os
+from typing import IO, BinaryIO
 
 def softmax(in_features: torch.Tensor, dim: int) -> torch.Tensor:
     """
@@ -151,5 +153,38 @@ def get_batch(
 
     return inputs, targets
 
+
+def save_checkpoint(
+    model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    iteration: int,
+    out: str | os.PathLike | BinaryIO | IO[bytes],
+) -> None:
+    """
+    Save model state, optimizer state, and iteration number.
+    """
+    checkpoint = {
+        "model": model.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "iteration": iteration,
+    }
+
+    torch.save(checkpoint, out)
+
+
+def load_checkpoint(
+    src: str | os.PathLike | BinaryIO | IO[bytes],
+    model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+) -> int:
+    """
+    Load model state, optimizer state, and return saved iteration.
+    """
+    checkpoint = torch.load(src)
+
+    model.load_state_dict(checkpoint["model"])
+    optimizer.load_state_dict(checkpoint["optimizer"])
+
+    return checkpoint["iteration"]
 
 
