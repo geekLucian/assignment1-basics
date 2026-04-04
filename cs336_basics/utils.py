@@ -148,8 +148,8 @@ def get_batch(
     targets = np.stack([dataset[i+1:i+1+context_length] for i in start_indices])
 
     # 4. Convert to torch tensors on the requested device.
-    inputs = torch.from_numpy(inputs).to(device)
-    targets = torch.from_numpy(targets).to(device)
+    inputs = torch.from_numpy(inputs).long().to(device)
+    targets = torch.from_numpy(targets).long().to(device)
 
     return inputs, targets
 
