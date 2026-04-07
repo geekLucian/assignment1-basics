@@ -66,6 +66,12 @@ def main() -> None:
 
     end_of_text_token_id = tokenizer.special_token_to_id[args.end_of_text_token.encode("utf-8")]
 
+    print(args.prompt, end="", flush=True)
+
+    def print_token(next_token: torch.Tensor) -> None:
+        token_id = next_token[0, 0].item()
+        print(tokenizer.decode([token_id]), end="", flush=True)
+
     output_ids = decode(
         model=model,
         prompt=prompt_tensor,
@@ -73,10 +79,10 @@ def main() -> None:
         end_of_text_token_id=end_of_text_token_id,
         temperature=args.temperature,
         top_p=args.top_p,
+        token_callback=print_token,
     )
 
-    output_text = tokenizer.decode(output_ids[0].tolist())
-    print(output_text)
+    print()
 
 
 if __name__ == "__main__":

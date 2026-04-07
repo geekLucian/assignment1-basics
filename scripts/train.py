@@ -91,6 +91,7 @@ def evaluate(
 
 def main() -> None:
     args = parse_args()
+    args.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
 
     # 1. Load datasets with np.memmap
     train_data = np.memmap(args.train_data, dtype=args.dataset_dtype, mode="r")

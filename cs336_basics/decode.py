@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import torch
 from .utils import softmax
 
@@ -12,6 +14,7 @@ def decode(
     end_of_text_token_id: int = 0,
     temperature: float = 1.0,
     top_p: float = 1.0,
+    token_callback: Callable[[torch.Tensor], None] | None = None,
 ) -> torch.Tensor:
     """
     Args:
@@ -48,6 +51,7 @@ def decode(
             sorted_probs, sorted_indices = torch.sort(probs, dim=-1, descending=True)
             cumulative_probs = torch.cumsum(sorted_probs, dim=-1)
             keep_mask = cumulative_probs <= top_p
+            keep_mask[..., 0] = True
 
             # renormalize kept probabilities
             filtered_probs = sorted_probs * keep_mask
@@ -59,6 +63,8 @@ def decode(
 
         # 6. Append sampled token to the running sequence.
         tokens = torch.cat([tokens, next_token], dim=-1)
+        if token_callback is not None:
+            token_callback(next_token)
 
         # 7. Stop if <|endoftext|> is generated.
         if (next_token == end_of_text_token_id).all():
